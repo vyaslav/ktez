@@ -1748,6 +1748,19 @@ public class TezConfiguration extends Configuration {
 
   public static final boolean TEZ_LOCAL_MODE_DEFAULT = false;
 
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_FRAMEWORK_CLIENT =
+    TEZ_PREFIX + "framework.client";
+
+  public static final String TEZ_FRAMEWORK_CLIENT_DEFAULT = "yarn";
+
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_RPC_PORT =
+          TEZ_PREFIX + "am.rpc.port";
+  public static final int TEZ_AM_RPC_PORT_DEFAULT = 0;
+
   /**
    *  Tez AM Inline Mode flag. Not valid till Tez-684 get checked-in
    */

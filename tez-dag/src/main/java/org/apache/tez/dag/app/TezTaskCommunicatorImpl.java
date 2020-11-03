@@ -17,12 +17,14 @@ package org.apache.tez.dag.app;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.Objects;
 
 import com.google.common.collect.Maps;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -32,6 +34,7 @@ import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.authorize.PolicyProvider;
+import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -62,6 +65,8 @@ import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.crypto.SecretKey;
 
 @InterfaceAudience.Private
 public class TezTaskCommunicatorImpl extends TaskCommunicator {
@@ -143,9 +148,14 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   }
 
   protected void startRpcServer() {
+    SecretKey key = null;
     try {
+//      String frameworkClient = conf.get(TezConfiguration.TEZ_FRAMEWORK_CLIENT, TezConfiguration.TEZ_FRAMEWORK_CLIENT_DEFAULT);
+//      if (!frameworkClient.equals("yarn")) {
+//        key= JobTokenSecretManager.createSecretKey(Base64.decodeBase64("H94Te5RPoLc="));
+//      }
       JobTokenSecretManager jobTokenSecretManager =
-          new JobTokenSecretManager();
+          new JobTokenSecretManager(key);
       jobTokenSecretManager.addTokenForJob(tokenIdentifier, sessionToken);
 
       server = new RPC.Builder(conf)

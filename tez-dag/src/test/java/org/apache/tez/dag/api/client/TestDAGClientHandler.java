@@ -18,15 +18,27 @@
 
 package org.apache.tez.dag.api.client;
 
+import static org.apache.commons.codec.binary.Base64.encodeBase64;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
+import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezAppMasterStatus;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.AppContext;
@@ -38,9 +50,36 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.internal.util.collections.Sets;
 
+import javax.crypto.KeyGenerator;
+
 
 public class TestDAGClientHandler {
   
+  @Test
+  public void aa() throws TezException, IOException {
+    ClientToAMTokenIdentifier clientToAMTokenIdentifier = new ClientToAMTokenIdentifier(ApplicationAttemptId.newInstance(ApplicationId.newInstance(1,2), 0), null);
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    try {
+      KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA1");
+      keyGen.init(64);
+      byte[] encoded = encodeBase64(keyGen.generateKey().getEncoded());
+      System.out.println(new String(encoded));
+    } catch (NoSuchAlgorithmException nsa) {
+      throw new IllegalArgumentException("Can't find " +
+              " algorithm.");
+    }
+    byte[] secret = encodeBase64(clientToAMTokenIdentifier.getProto().toByteArray());
+    String identifier = new String(secret, StandardCharsets.UTF_8);
+
+
+    byte[] tokenId = Base64.decodeBase64(identifier.getBytes(StandardCharsets.UTF_8));
+
+
+    ClientToAMTokenIdentifier tokenIdentifier =new ClientToAMTokenIdentifier();
+      tokenIdentifier.readFields(new DataInputStream(new ByteArrayInputStream(
+              tokenId)));
+  }
+
   @Test(timeout = 5000)
   public void testDAGClientHandler() throws TezException {
 

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,8 @@ import org.apache.tez.dag.app.security.authorize.TezAMPolicyProvider;
 
 import com.google.protobuf.BlockingService;
 
+import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION;
+
 public class DAGClientServer extends AbstractService {
   static final Logger LOG = LoggerFactory.getLogger(DAGClientServer.class);
 
@@ -65,7 +68,9 @@ public class DAGClientServer extends AbstractService {
   public void serviceStart() {
     try {
       Configuration conf = getConfig();
-      InetSocketAddress addr = new InetSocketAddress(0);
+      int rpcPort = conf.getInt(TezConfiguration.TEZ_AM_RPC_PORT,
+              TezConfiguration.TEZ_AM_RPC_PORT_DEFAULT);
+      InetSocketAddress addr = new InetSocketAddress(rpcPort);
 
       DAGClientAMProtocolBlockingPBServerImpl service =
           new DAGClientAMProtocolBlockingPBServerImpl(realInstance, stagingFs);
@@ -126,7 +131,24 @@ public class DAGClientServer extends AbstractService {
   private Server createServer(Class<?> pbProtocol, InetSocketAddress addr, Configuration conf,
       int numHandlers,
       BlockingService blockingService, String portRangeConfig) throws IOException {
+    String frameworkClient = conf.get(TezConfiguration.TEZ_FRAMEWORK_CLIENT, TezConfiguration.TEZ_FRAMEWORK_CLIENT_DEFAULT);
+    if (!frameworkClient.equals("yarn")) {
+       setClientAMSecretKey(ByteBuffer.wrap(Base64.decodeBase64("H94Te5RPoLc=")));
+    }
     RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine.class);
+//    if (!frameworkClient.equals("yarn")) {
+//      conf = new Configuration(conf);
+//      conf.set(HADOOP_SECURITY_AUTHENTICATION, "simple");
+//
+//      RPC.Server server = new RPC.Builder(conf).setProtocol(pbProtocol)
+//              .setInstance(blockingService).setBindAddress(addr.getHostString())
+//              .setPort(addr.getPort()).setNumHandlers(numHandlers).setVerbose(false)
+//              .setPortRangeConfig(portRangeConfig)
+//              .build();
+//      server.addProtocol(RPC.RpcKind.RPC_PROTOCOL_BUFFER, pbProtocol, blockingService);
+//      return server;
+//    }
+
     RPC.Server server = new RPC.Builder(conf).setProtocol(pbProtocol)
         .setInstance(blockingService).setBindAddress(addr.getHostString())
         .setPort(addr.getPort()).setNumHandlers(numHandlers).setVerbose(false)

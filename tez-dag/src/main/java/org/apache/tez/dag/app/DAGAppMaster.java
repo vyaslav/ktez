@@ -65,6 +65,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.Utils;
 import org.apache.tez.client.CallerContext;
@@ -198,6 +199,8 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import javax.crypto.SecretKey;
+
 /**
  * The Tez DAG Application Master.
  * The state machine is encapsulated in the implementation of Job interface.
@@ -257,8 +260,7 @@ public class DAGAppMaster extends AbstractService {
   private ContainerHeartbeatHandler containerHeartbeatHandler;
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private TaskCommunicatorManagerInterface taskCommunicatorManager;
-  private JobTokenSecretManager jobTokenSecretManager =
-      new JobTokenSecretManager();
+  private JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
   private Token<JobTokenIdentifier> sessionToken;
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
@@ -375,6 +377,14 @@ public class DAGAppMaster extends AbstractService {
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId
         + ", versionInfo=" + dagVersionInfo.toString());
     TezCommonUtils.logCredentials(LOG, this.appMasterUgi.getCredentials(), "am");
+
+//    SecretKey key = null;
+//      String frameworkClient = amConf.get(TezConfiguration.TEZ_FRAMEWORK_CLIENT, TezConfiguration.TEZ_FRAMEWORK_CLIENT_DEFAULT);
+//      if (!frameworkClient.equals("yarn")) {
+//        key= JobTokenSecretManager.createSecretKey(Base64.decodeBase64("H94Te5RPoLc="));
+//      }
+//       jobTokenSecretManager =
+//              new JobTokenSecretManager(key);
   }
 
   // Pull this WebAppUtils function into Tez until YARN-4186
@@ -444,6 +454,10 @@ public class DAGAppMaster extends AbstractService {
     List<NamedEntityDescriptor> taskSchedulerDescriptors = Lists.newLinkedList();
     List<NamedEntityDescriptor> containerLauncherDescriptors = Lists.newLinkedList();
     List<NamedEntityDescriptor> taskCommunicatorDescriptors = Lists.newLinkedList();
+
+    String frameworkClient = conf.get(TezConfiguration.TEZ_FRAMEWORK_CLIENT,
+            TezConfiguration.TEZ_FRAMEWORK_CLIENT_DEFAULT);
+    this.isLocal = isLocal || !frameworkClient.equals("yarn");
 
     parseAllPlugins(taskSchedulerDescriptors, taskSchedulers, containerLauncherDescriptors,
         containerLaunchers, taskCommunicatorDescriptors, taskCommunicators, amPluginDescriptorProto,
@@ -2678,6 +2692,7 @@ public class DAGAppMaster extends AbstractService {
         tezYarnEnabled = true;
         uberEnabled = false;
       } else {
+
         tezYarnEnabled = amPluginDescriptorProto.getContainersEnabled();
         uberEnabled = amPluginDescriptorProto.getUberEnabled();
       }

@@ -39,13 +39,16 @@ public abstract class FrameworkClient {
   public static FrameworkClient createFrameworkClient(TezConfiguration tezConf) {
 
     boolean isLocal = tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
-    if (isLocal) {
+    String frameworkClient = tezConf.get(TezConfiguration.TEZ_FRAMEWORK_CLIENT, TezConfiguration.TEZ_FRAMEWORK_CLIENT_DEFAULT);
+    if (isLocal || !frameworkClient.equals("yarn")) {
+      String className = isLocal? "org.apache.tez.client.LocalClient" : "org.apache.tez.client.KubernetesClient";
       try {
-        return ReflectionUtils.createClazzInstance("org.apache.tez.client.LocalClient");
+        return ReflectionUtils.createClazzInstance(className);
       } catch (TezReflectionException e) {
-        throw new TezUncheckedException("Fail to create LocalClient", e);
+        throw new TezUncheckedException("Fail to create " + className, e);
       }
     }
+
     return new TezYarnClient(YarnClient.createYarnClient());
   }
 
